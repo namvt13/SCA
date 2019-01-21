@@ -1,4 +1,4 @@
-# SRA
+# SRC
 
 Scalable real-time chat app, completes with private chat room, peer-to-peer chat and dynamically ultilizes CPU's resources across multiple machines.
 
