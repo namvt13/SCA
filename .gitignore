@@ -1,0 +1,4 @@
+consul_test/
+elastic_test/
+node_modules/
+yarn-error.log

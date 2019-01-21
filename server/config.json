@@ -1,0 +1,28 @@
+{
+	"momentFormat": "MMM D, YYYY, hh:mm",
+	"key": {
+		"mainKey": "pub_sub",
+		"listKey": "list"
+	},
+	"consul": {
+		"serviceName": "chat_app"
+	},
+	"events": {
+		"start": "chat_start",
+		"roomChange": "username_change",
+		"message": "message"
+	},
+	"timeoutLimit": "240",
+	"msgObj": {
+		"user": "user",
+		"peer": "peer",
+		"time": "time",
+		"message": "message"
+	},
+	"historySrv": {
+		"port": "4040"
+	},
+	"mainApp": {
+		"port": "4041"
+	}
+}

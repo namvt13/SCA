@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html>
+
+  <head>
+    <meta charset="utf-8" />
+    <meta http-equiv="X-UA-Compatible"
+          content="IE=edge">
+    <title>Real-time Chat</title>
+    <meta name="viewport"
+          content="width=device-width, initial-scale=1">
+  </head>
+
+  <body>
+    <form id="submitForm">
+      <input type="text"
+             id="msgBox"
+             placeholder="Enter your text...">
+      <button type="submit"
+              id="msgSubmitBtn"
+              disabled>Send</button>
+      <br><br>
+      Speaking as: <select id="userSelect"
+              onchange="changeRoom()"
+              name="userSelect">
+        <option value=''>User</option>
+      </select>
+      To: <select id="peerSelect"
+              onchange="changeRoom()"
+              name='peerSelect'>
+        <option value="">User / Group</option>
+      </select>
+      <br><br>
+    </form>
+    <form id="userRegForm">
+      <b>New user register: </b><br>
+      <input type="text"
+             id="newUsernameInput"
+             placeholder="Enter username...">
+      <button type="submit">Register user</button>
+    </form>
+    <form id="groupRegForm">
+      <b>New group register: </b><br>
+      <input type="text"
+             id="newGroupnameInput"
+             placeholder="Enter groupname...">
+      <button type="submit">Register Group</button>
+    </form>
+    <div>
+      <p><b>Messages:</b></p>
+      <hr>
+      <div id='messages'></div>
+    </div>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/2.2.0/socket.io.dev.js"></script>
+    <script src='main.js'></script>
+  </body>
+
+</html>
