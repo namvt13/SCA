@@ -3,6 +3,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
+const path_1 = __importDefault(require("path"));
 const commander_1 = __importDefault(require("commander"));
 const child_process_1 = __importDefault(require("child_process"));
 commander_1.default
@@ -18,26 +19,31 @@ console.log((commander_1.default.pm2 ? "- PM2" : "- Cluster") + " to create proc
 console.log(`- ${commander_1.default.historyProc} process(es) for history server`);
 console.log(`- ${commander_1.default.chatProc} process(es) for chat server`);
 console.log(`- Port ${commander_1.default.customPort} for the proxy server\n`);
-function createProc(command, path, value, cb) {
-    const spawn = child_process_1.default.spawn(command, [path, value]);
+console.log(`Default interface: http://localhost:${commander_1.default.customPort}\n`);
+function createProc(command, link, value, cb) {
+    const spawn = child_process_1.default.spawn(command, [link, value]);
     if (cb) {
         return cb();
     }
     spawn.stdout.pipe(process.stdout);
     spawn.stderr.pipe(process.stderr);
     spawn.on("exit", (code) => {
-        console.log(`${path} exited with code -- ${code}...`);
+        console.log(`${path_1.default} exited with code -- ${code}...`);
     });
 }
 createProc("consul", "agent", "-dev", initialize);
+function currPath(link) {
+    const currentPath = path_1.default.basename(__dirname) === "server" ? "" : "server";
+    return path_1.default.join(__dirname, currentPath, link);
+}
 function initialize() {
     if (commander_1.default.pm2) {
-        createProc("node", "history/appManagerPM2.js", commander_1.default.historyProc);
-        createProc("node", "chat/appManagerPM2.js", commander_1.default.chatProc);
+        createProc("node", currPath("history/appManagerPM2.js"), commander_1.default.historyProc);
+        createProc("node", currPath("chat/appManagerPM2.js"), commander_1.default.chatProc);
     }
     else {
-        createProc("node", "history/appManagerCluster.js", commander_1.default.historyProc);
-        createProc("node", "chat/appManagerCluster.js", commander_1.default.chatProc);
+        createProc("node", currPath("history/appManagerCluster.js"), commander_1.default.historyProc);
+        createProc("node", currPath("chat/appManagerCluster.js"), commander_1.default.chatProc);
     }
-    createProc("node", "chat/appProxy.js", commander_1.default.customPort);
+    createProc("node", currPath("chat/appProxy.js"), commander_1.default.customPort);
 }

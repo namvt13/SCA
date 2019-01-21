@@ -1,6 +1,5 @@
 import express from "express";
 import portfinder from "portfinder";
-import config from "../config.json";
 import historyService from "./historyService";
 import errorHandler from "../utils/errorHandler";
 

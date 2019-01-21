@@ -1,3 +1,4 @@
+import path from "path";
 import program from "commander";
 import childProcess from "child_process";
 
@@ -27,14 +28,15 @@ console.log((program.pm2 ? "- PM2" : "- Cluster") + " to create processes");
 console.log(`- ${program.historyProc} process(es) for history server`);
 console.log(`- ${program.chatProc} process(es) for chat server`);
 console.log(`- Port ${program.customPort} for the proxy server\n`);
+console.log(`Default interface: http://localhost:${program.customPort}\n`);
 
 function createProc(
 	command: string,
-	path: string,
+	link: string,
 	value: string,
 	cb?: () => void
 ) {
-	const spawn = childProcess.spawn(command, [path, value]);
+	const spawn = childProcess.spawn(command, [link, value]);
 	if (cb) {
 		return cb();
 	}
@@ -46,13 +48,27 @@ function createProc(
 }
 
 createProc("consul", "agent", "-dev", initialize);
+
+function currPath(link: string) {
+	const currentPath = path.basename(__dirname) === "server" ? "" : "server";
+	return path.join(__dirname, currentPath, link);
+}
+
 function initialize() {
 	if (program.pm2) {
-		createProc("node", "history/appManagerPM2.js", program.historyProc);
-		createProc("node", "chat/appManagerPM2.js", program.chatProc);
+		createProc(
+			"node",
+			currPath("history/appManagerPM2.js"),
+			program.historyProc
+		);
+		createProc("node", currPath("chat/appManagerPM2.js"), program.chatProc);
 	} else {
-		createProc("node", "history/appManagerCluster.js", program.historyProc);
-		createProc("node", "chat/appManagerCluster.js", program.chatProc);
+		createProc(
+			"node",
+			currPath("history/appManagerCluster.js"),
+			program.historyProc
+		);
+		createProc("node", currPath("chat/appManagerCluster.js"), program.chatProc);
 	}
-	createProc("node", "chat/appProxy.js", program.customPort);
+	createProc("node", currPath("chat/appProxy.js"), program.customPort);
 }
