@@ -1,9 +1,12 @@
 import http from "http";
 import path from "path";
 import express from "express";
+
 import config from "../config.json";
 import pubSub from "./pubSub";
 import redis from "redis";
+// import saveUserES from "../utils/saveUserES";
+import errorHandler from "../utils/errorHandler";
 
 const port = process.argv[2] || config.mainApp.port;
 const db = redis.createClient({
@@ -26,17 +29,18 @@ function createAndResponse(
 	res: express.Response
 ) {
 	db.hset(listKey, req.body.name, value, (err) => {
+		errorHandler(err);
 		db.expire(listKey, parseInt(config.timeoutLimit));
-		if (!err) {
-			res.status(200).send({
-				status: "SUCCESS"
-			});
-			db.hgetall(listKey, (err, results) => {
-				if (!err) {
-					console.log(JSON.stringify(results));
-				}
-			});
-		}
+
+		// saveUserES.saveOne(value, req.body.name);
+
+		res.status(200).send({
+			status: "SUCCESS"
+		});
+		db.hgetall(listKey, (err, results) => {
+			errorHandler(err);
+			// console.log(JSON.stringify(results));
+		});
 	});
 }
 
@@ -52,4 +56,4 @@ server.listen(
 	)
 );
 
-pubSub(server, port);
+pubSub(server, port.toString());

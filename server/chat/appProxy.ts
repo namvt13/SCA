@@ -40,10 +40,16 @@ app
 				}
 
 				const uniqueIdIdx = clientIdArr.indexOf(uniqueId);
-				serverIdx = (uniqueIdIdx > 0 ? uniqueIdIdx : 0) % servers.length;
+				serverIdx =
+					(uniqueIdIdx > 0 ? uniqueIdIdx : clientIdArr.length) % servers.length;
+
+				console.log("clientIdArr");
+				console.log(clientIdArr.length);
+				console.log("serverIdx");
+				console.log(serverIdx);
 
 				proxy.web(req, res, {
-					target: servers[0]
+					target: servers[serverIdx]
 				});
 			}
 		});

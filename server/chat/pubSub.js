@@ -37,9 +37,7 @@ function pubSub(server, port) {
                 switch (msgObj.type) {
                     case "saved":
                         msgObj.time = toMomentTime_1.default(msgObj.time);
-                        const msgObjJSON = JSON.stringify(msgObj);
-                        io.to(username + "_" + peerUsername).emit("message", msgObjJSON);
-                        io.to(username !== peerUsername ? peerUsername + "_" + username : "").emit("message", msgObjJSON);
+                        emitMsg(msgObj, "message");
                         break;
                     case "loaded":
                         if (msgObj.peer === peerUsername && mainAck) {
@@ -51,6 +49,9 @@ function pubSub(server, port) {
                         if (mainAck) {
                             mainAck(msgObj.results);
                         }
+                        break;
+                    case "searched":
+                        emitMsg(msgObj, "search");
                         break;
                     default:
                         break;
@@ -87,22 +88,33 @@ function pubSub(server, port) {
         console.log("Client connected!");
         socket.on(config_json_1.default.events.start, (userObjJSON, ack) => {
             mainAck = ack;
-            changeAndReloadUser({}, "list");
+            changeAndReloadUser({}, config_json_1.default.events.list);
         });
         socket.on(config_json_1.default.events.roomChange, (userObjJSON, ack) => {
             const userObj = JSON.parse(userObjJSON);
             mainAck = ack;
             socket.leaveAll();
+            console.log("JOINED...");
             socket.join(userObj.user + "_" + userObj.peer);
-            changeAndReloadUser(userObj, "load");
+            changeAndReloadUser(userObj, config_json_1.default.events.load);
         });
         socket.on(config_json_1.default.events.message, (msg) => {
             const msgObj = JSON.parse(msg);
             console.log(`Received message: ${msgObj.message}`);
             msgObj.time = Date.now().toString();
-            msgObj.type = "save";
-            changeAndReloadUser(msgObj, "save");
+            socket.join(msgObj.user + "_" + msgObj.peer);
+            changeAndReloadUser(msgObj, config_json_1.default.events.save);
+        });
+        socket.on(config_json_1.default.events.search, (msgObj) => {
+            socket.join(msgObj.user + "_" + msgObj.peer);
+            msgObj.user.length > 0 &&
+                changeAndReloadUser(msgObj, config_json_1.default.events.search);
         });
     });
+    function emitMsg(msgObj, type) {
+        const msgObjJSON = JSON.stringify(msgObj);
+        io.to(username + "_" + peerUsername).emit(type, msgObjJSON);
+        io.to(username !== peerUsername ? peerUsername + "_" + username : "").emit(type, msgObjJSON);
+    }
 }
 exports.default = pubSub;

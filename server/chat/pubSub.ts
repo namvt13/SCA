@@ -47,13 +47,15 @@ export default function pubSub(server: http.Server, port: string) {
 					switch (msgObj.type) {
 						case "saved":
 							msgObj.time = toMomentTime(msgObj.time);
-							const msgObjJSON = JSON.stringify(msgObj);
+							emitMsg(msgObj, "message");
 
-							io.to(username + "_" + peerUsername).emit("message", msgObjJSON);
-							// This is used in case when 2 user have the opposite recipient.
-							io.to(
-								username !== peerUsername ? peerUsername + "_" + username : ""
-							).emit("message", msgObjJSON);
+							// const msgObjJSON = JSON.stringify(msgObj);
+
+							// io.to(username + "_" + peerUsername).emit("message", msgObjJSON);
+							// // This is used in case when 2 user have the opposite recipient.
+							// io.to(
+							// 	username !== peerUsername ? peerUsername + "_" + username : ""
+							// ).emit("message", msgObjJSON);
 							break;
 						case "loaded":
 							if (msgObj.peer === peerUsername && mainAck) {
@@ -65,6 +67,9 @@ export default function pubSub(server: http.Server, port: string) {
 							if (mainAck) {
 								mainAck(msgObj.results);
 							}
+							break;
+						case "searched":
+							emitMsg(msgObj, "search");
 							break;
 						default:
 							break;
@@ -121,23 +126,40 @@ export default function pubSub(server: http.Server, port: string) {
 			// const userObj = JSON.parse(userObjJSON) as IMsg;
 			mainAck = ack;
 			// socket.join(userObj.peer);
-			changeAndReloadUser({} as any, "list");
+			changeAndReloadUser({} as any, config.events.list);
 		});
 
 		socket.on(config.events.roomChange, (userObjJSON, ack) => {
 			const userObj = JSON.parse(userObjJSON) as IMsg;
 			mainAck = ack;
 			socket.leaveAll();
+			console.log("JOINED...");
 			socket.join(userObj.user + "_" + userObj.peer);
-			changeAndReloadUser(userObj, "load");
+			changeAndReloadUser(userObj, config.events.load);
 		});
 
 		socket.on(config.events.message, (msg) => {
 			const msgObj = JSON.parse(msg) as IMsg;
 			console.log(`Received message: ${msgObj.message}`);
 			msgObj.time = Date.now().toString();
-			msgObj.type = "save";
-			changeAndReloadUser(msgObj, "save");
+			socket.join(msgObj.user + "_" + msgObj.peer);
+			changeAndReloadUser(msgObj, config.events.save);
+		});
+
+		socket.on(config.events.search, (msgObj) => {
+			socket.join(msgObj.user + "_" + msgObj.peer);
+			msgObj.user.length > 0 &&
+				changeAndReloadUser(msgObj, config.events.search);
 		});
 	});
+
+	function emitMsg(msgObj: {[key: string]: any}, type: string) {
+		const msgObjJSON = JSON.stringify(msgObj);
+		io.to(username + "_" + peerUsername).emit(type, msgObjJSON);
+		// This is used in case when 2 user have the opposite recipient.
+		io.to(username !== peerUsername ? peerUsername + "_" + username : "").emit(
+			type,
+			msgObjJSON
+		);
+	}
 }

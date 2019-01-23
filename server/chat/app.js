@@ -9,6 +9,7 @@ const express_1 = __importDefault(require("express"));
 const config_json_1 = __importDefault(require("../config.json"));
 const pubSub_1 = __importDefault(require("./pubSub"));
 const redis_1 = __importDefault(require("redis"));
+const errorHandler_1 = __importDefault(require("../utils/errorHandler"));
 const port = process.argv[2] || config_json_1.default.mainApp.port;
 const db = redis_1.default.createClient({
     auth_pass: "123"
@@ -22,21 +23,18 @@ app.use(express_1.default.urlencoded({
 app.use(express_1.default.json());
 function createAndResponse(value, req, res) {
     db.hset(listKey, req.body.name, value, (err) => {
+        errorHandler_1.default(err);
         db.expire(listKey, parseInt(config_json_1.default.timeoutLimit));
-        if (!err) {
-            res.status(200).send({
-                status: "SUCCESS"
-            });
-            db.hgetall(listKey, (err, results) => {
-                if (!err) {
-                    console.log(JSON.stringify(results));
-                }
-            });
-        }
+        res.status(200).send({
+            status: "SUCCESS"
+        });
+        db.hgetall(listKey, (err, results) => {
+            errorHandler_1.default(err);
+        });
     });
 }
 app.post("/regUser", createAndResponse.bind(null, "user"));
 app.post("/regGroup", createAndResponse.bind(null, "group"));
 const server = http_1.default.createServer(app);
 server.listen(port, console.log.bind(console, `Pub-Sub client server is listening @ http://localhost:${port}`));
-pubSub_1.default(server, port);
+pubSub_1.default(server, port.toString());
