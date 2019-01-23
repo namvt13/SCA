@@ -5,6 +5,7 @@ import config from "../config.json";
 import objToArrMoment from "../utils/objToArrMoment";
 import getRedisKey from "../utils/getRedisKey";
 import errorHandler from "../utils/errorHandler";
+import esServices from "../utils/esServices";
 
 interface IMsg {
 	type?: string;
@@ -13,14 +14,13 @@ interface IMsg {
 	user: string;
 	peer: string;
 	message: string;
+	searchTerm: string;
 }
 
 export default function historyService() {
 	const db = redis.createClient({
 		auth_pass: "123"
 	});
-
-	// db.del(config.key.mainKey + "_" + "Cruise");
 
 	let channel: amqp.Channel, queue: string, exchange: string;
 
@@ -52,7 +52,7 @@ export default function historyService() {
 							saveMsg(msgObj, msg);
 							break;
 						case "load":
-							const keyObj = keyMaker(msgObj.user, msgObj.peer);
+							const keyObj = keyMaker(msgObj);
 							getRedisKey
 								.getKey(db, keyObj.userKey, msgObj.peer)
 								.then((userPeerKey) => {
@@ -73,10 +73,17 @@ export default function historyService() {
 							getRedisKey
 								.getAllKey(db, config.key.mainKey + "_" + config.key.listKey)
 								.then((results) => {
-									publish(msgObj.peer, results, "listed");
-									channel.ack(msg);
+									esServices.saveBulk(results, () => {
+										publish(msgObj.peer, results, "listed");
+										channel.ack(msg);
+									});
 								});
 							break;
+						case "search":
+							esServices.searchES(msgObj.searchTerm, (resultArr: string[]) => {
+								publish(msgObj.user, resultArr, "searched");
+								channel.ack(msg);
+							});
 						default:
 							break;
 					}
@@ -99,12 +106,12 @@ export default function historyService() {
 	}
 
 	function saveMsg(msgObj: IMsg, msg: amqp.Message) {
-		const keyObj = keyMaker(msgObj.user, msgObj.peer, msgObj.group);
+		const keyObj = keyMaker(msgObj);
 
 		console.log(`Saving message: ${msgObj.message}`);
 		console.log("Saving key:", JSON.stringify(keyObj));
 
-		// When a group talk, it talks to all its member (as Admin)
+		// When a group talk, it talks to all its member (as Admin), so we just need to set the recepient as group (msgObj.peer === keyObj.userPeerKey), no need to create a third key represent the conversation.
 		db.hset(keyObj.userKey, msgObj.peer, keyObj.userPeerKey, (err) => {
 			errorHandler(err);
 			db.expire(keyObj.userKey, parseInt(config.timeoutLimit));
@@ -132,11 +139,6 @@ export default function historyService() {
 			);
 		});
 
-		// db.hset(config.key.mainKey + "_" + peer, time, message, (err) => {
-		// 	if (!err) {
-		// 		channel.ack(msg);
-		// 	}
-		// });
 		db.expire(
 			config.key.mainKey + "_" + msgObj.peer,
 			parseInt(config.timeoutLimit)
@@ -144,13 +146,14 @@ export default function historyService() {
 	}
 }
 
-function keyMaker(user: string, peer: string, group?: boolean) {
-	const userKey = config.key.mainKey + "_" + user;
-	const peerKey = config.key.mainKey + "_" + peer;
-	const userPeerKey = config.key.mainKey + "_" + [user, peer].sort().join("_");
+function keyMaker(msgObj: {user: string; peer: string; group?: boolean}) {
+	const userKey = config.key.mainKey + "_" + msgObj.user;
+	const peerKey = config.key.mainKey + "_" + msgObj.peer;
+	const userPeerKey =
+		config.key.mainKey + "_" + [msgObj.user, msgObj.peer].sort().join("_");
 	return {
 		userKey,
 		peerKey,
-		userPeerKey: !group ? userPeerKey : peerKey
+		userPeerKey: !msgObj.group ? userPeerKey : peerKey
 	};
 }

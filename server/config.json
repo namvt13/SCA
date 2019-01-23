@@ -10,7 +10,11 @@
 	"events": {
 		"start": "chat_start",
 		"roomChange": "username_change",
-		"message": "message"
+		"message": "message",
+		"search": "search",
+		"save": "save",
+		"list": "list",
+		"load": "load"
 	},
 	"timeoutLimit": "240",
 	"msgObj": {
@@ -24,5 +28,16 @@
 	},
 	"mainApp": {
 		"port": "4041"
+	},
+	"es": {
+		"index": "chat_app",
+		"types": {
+			"list": "list",
+			"post": "post"
+		},
+		"fields": {
+			"user": "user",
+			"group": "group"
+		}
 	}
 }

@@ -29,6 +29,7 @@ function createProc(command, link, value, cb) {
     spawn.stderr.pipe(process.stderr);
     spawn.on("exit", (code) => {
         console.log(`${path_1.default} exited with code -- ${code}...`);
+        createProc(command, link, value);
     });
 }
 createProc("consul", "agent", "-dev", initialize);

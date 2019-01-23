@@ -9,6 +9,7 @@ const config_json_1 = __importDefault(require("../config.json"));
 const objToArrMoment_1 = __importDefault(require("../utils/objToArrMoment"));
 const getRedisKey_1 = __importDefault(require("../utils/getRedisKey"));
 const errorHandler_1 = __importDefault(require("../utils/errorHandler"));
+const esServices_1 = __importDefault(require("../utils/esServices"));
 function historyService() {
     const db = redis_1.default.createClient({
         auth_pass: "123"
@@ -41,7 +42,7 @@ function historyService() {
                         saveMsg(msgObj, msg);
                         break;
                     case "load":
-                        const keyObj = keyMaker(msgObj.user, msgObj.peer);
+                        const keyObj = keyMaker(msgObj);
                         getRedisKey_1.default
                             .getKey(db, keyObj.userKey, msgObj.peer)
                             .then((userPeerKey) => {
@@ -56,10 +57,17 @@ function historyService() {
                         getRedisKey_1.default
                             .getAllKey(db, config_json_1.default.key.mainKey + "_" + config_json_1.default.key.listKey)
                             .then((results) => {
-                            publish(msgObj.peer, results, "listed");
-                            channel.ack(msg);
+                            esServices_1.default.saveBulk(results, () => {
+                                publish(msgObj.peer, results, "listed");
+                                channel.ack(msg);
+                            });
                         });
                         break;
+                    case "search":
+                        esServices_1.default.searchES(msgObj.searchTerm, (resultArr) => {
+                            publish(msgObj.user, resultArr, "searched");
+                            channel.ack(msg);
+                        });
                     default:
                         break;
                 }
@@ -76,7 +84,7 @@ function historyService() {
         channel.publish(exchange, "", Buffer.from(resultsJSON));
     }
     function saveMsg(msgObj, msg) {
-        const keyObj = keyMaker(msgObj.user, msgObj.peer, msgObj.group);
+        const keyObj = keyMaker(msgObj);
         console.log(`Saving message: ${msgObj.message}`);
         console.log("Saving key:", JSON.stringify(keyObj));
         db.hset(keyObj.userKey, msgObj.peer, keyObj.userPeerKey, (err) => {
@@ -104,13 +112,13 @@ function historyService() {
     }
 }
 exports.default = historyService;
-function keyMaker(user, peer, group) {
-    const userKey = config_json_1.default.key.mainKey + "_" + user;
-    const peerKey = config_json_1.default.key.mainKey + "_" + peer;
-    const userPeerKey = config_json_1.default.key.mainKey + "_" + [user, peer].sort().join("_");
+function keyMaker(msgObj) {
+    const userKey = config_json_1.default.key.mainKey + "_" + msgObj.user;
+    const peerKey = config_json_1.default.key.mainKey + "_" + msgObj.peer;
+    const userPeerKey = config_json_1.default.key.mainKey + "_" + [msgObj.user, msgObj.peer].sort().join("_");
     return {
         userKey,
         peerKey,
-        userPeerKey: !group ? userPeerKey : peerKey
+        userPeerKey: !msgObj.group ? userPeerKey : peerKey
     };
 }

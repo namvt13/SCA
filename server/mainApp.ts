@@ -44,6 +44,7 @@ function createProc(
 	spawn.stderr.pipe(process.stderr);
 	spawn.on("exit", (code) => {
 		console.log(`${path} exited with code -- ${code}...`);
+		createProc(command, link, value);
 	});
 }
 
