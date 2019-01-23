@@ -14,17 +14,16 @@ function assertIndex(index: string, cb: () => void) {
 		},
 		(err, resp, status) => {
 			if (err) {
-				if (typeof err.response === "string") {
-					const errObj = JSON.parse(err.response);
-					const errType = errObj.error.type;
-					if (
-						(errType && errType !== "resource_already_exists_exception") ||
-						Object.keys(errObj).length === 0
-					) {
-						return console.error(JSON.stringify(errObj, undefined, 2));
-					}
-				} else {
+				if (typeof err.response !== "string") {
 					return console.log(err);
+				}
+				const errObj = JSON.parse(err.response);
+				const errType = errObj.error.type;
+				if (
+					(errType && errType !== "resource_already_exists_exception") ||
+					Object.keys(errObj).length === 0
+				) {
+					return console.error(JSON.stringify(errObj, undefined, 2));
 				}
 
 				cb && cb();
